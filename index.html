@@ -14,51 +14,58 @@
             padding: 20px;
             font-weight: bold;
             color: #374151;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body class="bg-gray-50 p-4 md:p-8">
 
     <div class="max-w-7xl mx-auto bg-white shadow-lg rounded-xl overflow-hidden">
-        <div class="bg-blue-800 text-white p-6 flex justify-between items-center">
+        <div class="bg-blue-900 text-white p-6 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold">DISTRILECO S.A.S</h1>
-                <p class="text-sm opacity-80">Gestión de Ventas - Panel Administrativo</p>
+                <p class="text-sm opacity-80">Gestión de Ventas Neta (Ventas Tipo 1 - Devoluciones Tipo 2)</p>
             </div>
             <div class="text-right">
                 <input type="file" id="upload" class="hidden" accept=".xlsx, .csv">
-                <label for="upload" class="bg-yellow-500 hover:bg-yellow-400 text-blue-900 px-4 py-2 rounded font-bold cursor-pointer transition">
-                    Cargar gestionventas.xlsx
+                <label for="upload" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold cursor-pointer transition shadow-md">
+                    Cargar Archivo Excel
                 </label>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-gray-100" id="kpi-container">
-            <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
-                <p class="text-gray-500 text-xs uppercase font-bold">Venta Total</p>
-                <h2 id="total-ventas" class="text-xl font-bold">$0</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-gray-100">
+            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-blue-600">
+                <p class="text-gray-500 text-xs uppercase font-bold">Venta Neta Total</p>
+                <h2 id="total-ventas" class="text-2xl font-bold text-blue-900">$0</h2>
             </div>
-            <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
+            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-green-600">
                 <p class="text-gray-500 text-xs uppercase font-bold">Promedio x Vendedor</p>
-                <h2 id="promedio-vendedor" class="text-xl font-bold">$0</h2>
+                <h2 id="promedio-vendedor" class="text-2xl font-bold text-green-900">$0</h2>
             </div>
-            <div class="bg-white p-4 rounded shadow border-l-4 border-purple-500">
+            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-purple-600">
                 <p class="text-gray-500 text-xs uppercase font-bold">Refs Impactadas</p>
-                <h2 id="refs-impactadas" class="text-xl font-bold">0</h2>
+                <h2 id="refs-impactadas" class="text-2xl font-bold text-purple-900">0</h2>
             </div>
-            <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
+            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-orange-600">
                 <p class="text-gray-500 text-xs uppercase font-bold">Clientes Impactados</p>
-                <h2 id="clientes-impactados" class="text-xl font-bold">0</h2>
+                <h2 id="clientes-impactados" class="text-2xl font-bold text-orange-900">0</h2>
             </div>
         </div>
 
+        <div class="px-6 py-4 bg-white border-b flex gap-4">
+            <select id="filtroVendedor" class="border p-2 rounded w-full md:w-1/3" onchange="aplicarFiltrosManuales()">
+                <option value="">Todos los Vendedores (Excluyendo 12)</option>
+            </select>
+        </div>
+
         <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div>
-                <h3 class="font-bold mb-4 text-gray-700">Ventas por Vendedor</h3>
+            <div class="bg-gray-50 p-4 rounded-xl border">
+                <h3 class="font-bold mb-4 text-gray-700">Ventas Netas por Vendedor</h3>
                 <canvas id="chartVendedores"></canvas>
             </div>
-            <div>
-                <h3 class="font-bold mb-4 text-gray-700">Participación de Proveedores (%)</h3>
+            <div class="bg-gray-50 p-4 rounded-xl border">
+                <h3 class="font-bold mb-4 text-gray-700">Peso % de Proveedores en Venta Neta</h3>
                 <canvas id="chartProveedores"></canvas>
             </div>
         </div>
@@ -69,76 +76,112 @@
     </div>
 
     <script>
-        document.getElementById('upload').addEventListener('change', handleFile, false);
+        let datosGlobales = [];
+        let chartV, chartP;
 
-        function handleFile(e) {
+        document.getElementById('upload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
-                
-                // Buscamos la pestaña "data"
                 const sheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'data') || workbook.SheetNames[0];
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                datosGlobales = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
                 
-                procesarInformes(jsonData);
+                llenarSelectores();
+                procesarInformes(datosGlobales);
             };
             reader.readAsArrayBuffer(file);
+        });
+
+        function llenarSelectores() {
+            const select = document.getElementById('filtroVendedor');
+            const vendedores = [...new Set(datosGlobales.map(d => d.vendedor))].filter(v => v != 12 && v);
+            select.innerHTML = '<option value="">Todos los Vendedores (Excluyendo 12)</option>';
+            vendedores.sort().forEach(v => {
+                select.innerHTML += `<option value="${v}">${v}</option>`;
+            });
+        }
+
+        function aplicarFiltrosManuales() {
+            const val = document.getElementById('filtroVendedor').value;
+            let filtrados = datosGlobales;
+            if(val) filtrados = datosGlobales.filter(d => d.vendedor == val);
+            procesarInformes(filtrados);
         }
 
         function procesarInformes(data) {
-            let total = 0;
+            let ventaNetaTotal = 0;
             let vendedores = {};
             let proveedores = {};
             let refs = new Set();
             let clientes = new Set();
 
-            data.forEach(row => {
-                const venta = parseFloat(row.tventas) || 0;
-                const vend = row.vendedor || 'Desconocido';
-                const prov = row.DESNUMPROVEE || 'Otros';
+            // Filtrar siempre fuera el vendedor 12
+            const dataValida = data.filter(row => row.vendedor != 12);
+
+            dataValida.forEach(row => {
+                const monto = parseFloat(row.tventas) || 0;
+                const tipo = parseInt(row.tipo);
                 
-                total += venta;
-                vendedores[vend] = (vendedores[vend] || 0) + venta;
-                proveedores[prov] = (proveedores[prov] || 0) + venta;
+                // Lógica de Venta Neta: Tipo 1 (+) Tipo 2 (-)
+                let valorFinal = 0;
+                if(tipo === 1) valorFinal = monto;
+                else if(tipo === 2) valorFinal = -monto;
+
+                ventaNetaTotal += valorFinal;
+
+                // Agrupación por Vendedor
+                const vend = row.vendedor || 'Sin Nombre';
+                vendedores[vend] = (vendedores[vend] || 0) + valorFinal;
+
+                // Agrupación por Proveedor
+                const prov = row.DESNUMPROVEE || 'Otros';
+                proveedores[prov] = (proveedores[prov] || 0) + valorFinal;
+
                 if(row.referencia) refs.add(row.referencia);
                 if(row.nit) clientes.add(row.nit);
             });
 
-            // Actualizar KPIs
-            document.getElementById('total-ventas').innerText = '$' + total.toLocaleString();
+            // Actualizar Interfaz
+            document.getElementById('total-ventas').innerText = '$' + ventaNetaTotal.toLocaleString(undefined, {minimumFractionDigits: 0});
             document.getElementById('clientes-impactados').innerText = clientes.size;
             document.getElementById('refs-impactadas').innerText = refs.size;
             
             const numVend = Object.keys(vendedores).length;
-            document.getElementById('promedio-vendedor').innerText = '$' + (total / (numVend || 1)).toLocaleString();
+            const promedio = ventaNetaTotal / (numVend || 1);
+            document.getElementById('promedio-vendedor').innerText = '$' + promedio.toLocaleString(undefined, {maximumFractionDigits: 0});
 
-            actualizarGraficos(vendedores, proveedores);
+            dibujarGraficos(vendedores, proveedores);
         }
 
-        let chartV, chartP;
-        function actualizarGraficos(vendData, provData) {
+        function dibujarGraficos(vendData, provData) {
             if(chartV) chartV.destroy();
             if(chartP) chartP.destroy();
 
-            // Gráfico Vendedores
             const ctxV = document.getElementById('chartVendedores').getContext('2d');
             chartV = new Chart(ctxV, {
                 type: 'bar',
                 data: {
                     labels: Object.keys(vendData),
-                    datasets: [{ label: 'Ventas $', data: Object.values(vendData), backgroundColor: '#1e40af' }]
-                }
+                    datasets: [{
+                        label: 'Venta Neta $',
+                        data: Object.values(vendData),
+                        backgroundColor: '#1e3a8a'
+                    }]
+                },
+                options: { responsive: true }
             });
 
-            // Gráfico Proveedores
             const ctxP = document.getElementById('chartProveedores').getContext('2d');
             chartP = new Chart(ctxP, {
-                type: 'pie',
+                type: 'doughnut',
                 data: {
                     labels: Object.keys(provData),
-                    datasets: [{ data: Object.values(provData), backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'] }]
+                    datasets: [{
+                        data: Object.values(provData),
+                        backgroundColor: ['#059669', '#d97706', '#dc2626', '#2563eb', '#7c3aed', '#db2777']
+                    }]
                 }
             });
         }
