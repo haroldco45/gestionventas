@@ -3,186 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Ventas - Distrileco</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Envío Reportes - Distrileco</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .vibras-positivas-footer {
-            border-top: 2px solid #f3f4f6;
-            text-align: center;
-            padding: 20px;
-            font-weight: bold;
-            color: #374151;
-            margin-top: 20px;
-        }
+        .vibras-positivas-footer { border-top: 2px solid #e2e8f0; text-align: center; padding: 15px; font-weight: bold; color: #475569; margin-top: 20px; font-size: 13px; }
+        .btn-whatsapp { background-color: #25D366; color: white; padding: 8px 16px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; border-radius: 99px; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .btn-whatsapp:hover { background-color: #128C7E; transform: scale(1.05); }
     </style>
 </head>
-<body class="bg-gray-50 p-4 md:p-8">
+<body class="bg-slate-50 p-2 md:p-6">
 
-    <div class="max-w-7xl mx-auto bg-white shadow-lg rounded-xl overflow-hidden">
-        <div class="bg-blue-900 text-white p-6 flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold">DISTRILECO S.A.S</h1>
-                <p class="text-sm opacity-80">Gestión de Ventas Neta (Ventas Tipo 1 - Devoluciones Tipo 2)</p>
+    <div class="max-w-[1300px] mx-auto space-y-4">
+        <div class="bg-blue-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-center md:text-left">
+                <h1 class="text-3xl font-black tracking-tighter italic">DISTRILECO S.A.S</h1>
+                <p class="text-xs text-blue-300 uppercase font-bold tracking-widest">Generador de Informes vía WhatsApp</p>
             </div>
-            <div class="text-right">
+            <label class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold cursor-pointer shadow-md hover:bg-green-500 transition">
+                📂 CARGAR GESTIONVENTAS.XLSX
                 <input type="file" id="upload" class="hidden" accept=".xlsx, .csv">
-                <label for="upload" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold cursor-pointer transition shadow-md">
-                    Cargar Archivo Excel
-                </label>
+            </label>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <label class="text-xs font-black text-blue-900 uppercase">1. Seleccionar Proveedor:</label>
+                <select id="selProv" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg font-bold text-slate-700" onchange="procesar()"><option value="">TODOS LOS PROVEEDORES</option></select>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <label class="text-xs font-black text-blue-900 uppercase">2. Seleccionar Vendedor:</label>
+                <select id="selVend" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg font-bold text-slate-700" onchange="procesar()"><option value="">TODOS LOS VENDEDORES</option></select>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <label class="text-xs font-black text-blue-900 uppercase">3. Ref. Proveedor (Col I):</label>
+                <select id="selRefI" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg font-bold text-slate-700" onchange="procesar()"><option value="">TODAS LAS REFERENCIAS</option></select>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-gray-100">
-            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-blue-600">
-                <p class="text-gray-500 text-xs uppercase font-bold">Venta Neta Total</p>
-                <h2 id="total-ventas" class="text-2xl font-bold text-blue-900">$0</h2>
-            </div>
-            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-green-600">
-                <p class="text-gray-500 text-xs uppercase font-bold">Promedio x Vendedor</p>
-                <h2 id="promedio-vendedor" class="text-2xl font-bold text-green-900">$0</h2>
-            </div>
-            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-purple-600">
-                <p class="text-gray-500 text-xs uppercase font-bold">Refs Impactadas</p>
-                <h2 id="refs-impactadas" class="text-2xl font-bold text-purple-900">0</h2>
-            </div>
-            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-orange-600">
-                <p class="text-gray-500 text-xs uppercase font-bold">Clientes Impactados</p>
-                <h2 id="clientes-impactados" class="text-2xl font-bold text-orange-900">0</h2>
-            </div>
-        </div>
-
-        <div class="px-6 py-4 bg-white border-b flex gap-4">
-            <select id="filtroVendedor" class="border p-2 rounded w-full md:w-1/3" onchange="aplicarFiltrosManuales()">
-                <option value="">Todos los Vendedores (Excluyendo 12)</option>
-            </select>
-        </div>
-
-        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-gray-50 p-4 rounded-xl border">
-                <h3 class="font-bold mb-4 text-gray-700">Ventas Netas por Vendedor</h3>
-                <canvas id="chartVendedores"></canvas>
-            </div>
-            <div class="bg-gray-50 p-4 rounded-xl border">
-                <h3 class="font-bold mb-4 text-gray-700">Peso % de Proveedores en Venta Neta</h3>
-                <canvas id="chartProveedores"></canvas>
+        <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-800 text-white text-[11px] uppercase tracking-wider">
+                        <tr>
+                            <th class="p-4">Cód / Vendedor</th>
+                            <th class="p-4 text-right">Venta (T1)</th>
+                            <th class="p-4 text-right">Devol. (T2)</th>
+                            <th class="p-4 text-right bg-blue-800">Neto Total</th>
+                            <th class="p-4 text-right">Venta / Cliente</th>
+                            <th class="p-4 text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaBody" class="text-sm divide-y divide-slate-100">
+                        <tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic">Cargue el archivo para generar los informes individuales...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
         <footer class="vibras-positivas-footer">
-            <p>app desarrollada por vibras positivas derechos de autor (3117700431)</p>
+            app desarrollada por vibras positivas derechos de autor (3117700431)
         </footer>
     </div>
 
     <script>
-        let datosGlobales = [];
-        let chartV, chartP;
+        let rawData = [];
+        
+        // Base de datos de vendedores proporcionada por don Harold
+        const contactos = {
+            "03": { nombre: "ALEXANDER SANCHEZ", cel: "573218037260" },
+            "04": { nombre: "JUAN CARLOS QUINTANA", cel: "573204077185" },
+            "06": { nombre: "LORENZO CASTELLAR", cel: "573113896092" },
+            "07": { nombre: "ARGENIS MEZA", cel: "573122960169" },
+            "10": { nombre: "GELYDIS ENAMORADO", cel: "573135031118" },
+            "17": { nombre: "ROBERT ATENCIA", cel: "573022107387" },
+            "22": { nombre: "JUAN CARLOS ZABALA", cel: "573232911903" },
+            "26": { nombre: "ROY REYES", cel: "573108480777" },
+            "28": { nombre: "RUBEN ABENDAÑO", cel: "573148010448" },
+            "32": { nombre: "JULIET RODRIGUEZ", cel: "573135780204" },
+            "01": { nombre: "HAROLD MARIN", cel: "573117700431" },
+            "02": { nombre: "DANNY TRONCOSO", cel: "573137671011" }
+        };
 
         document.getElementById('upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const sheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'data') || workbook.SheetNames[0];
-                datosGlobales = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                
-                llenarSelectores();
-                procesarInformes(datosGlobales);
+            reader.onload = (event) => {
+                const workbook = XLSX.read(new Uint8Array(event.target.result), {type: 'array'});
+                const sheet = workbook.SheetNames.find(n => n.toLowerCase() === 'data') || workbook.SheetNames[0];
+                rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
+                poblarFiltros();
+                procesar();
             };
-            reader.readAsArrayBuffer(file);
+            reader.readAsArrayBuffer(e.target.files[0]);
         });
 
-        function llenarSelectores() {
-            const select = document.getElementById('filtroVendedor');
-            const vendedores = [...new Set(datosGlobales.map(d => d.vendedor))].filter(v => v != 12 && v);
-            select.innerHTML = '<option value="">Todos los Vendedores (Excluyendo 12)</option>';
-            vendedores.sort().forEach(v => {
-                select.innerHTML += `<option value="${v}">${v}</option>`;
-            });
-        }
-
-        function aplicarFiltrosManuales() {
-            const val = document.getElementById('filtroVendedor').value;
-            let filtrados = datosGlobales;
-            if(val) filtrados = datosGlobales.filter(d => d.vendedor == val);
-            procesarInformes(filtrados);
-        }
-
-        function procesarInformes(data) {
-            let ventaNetaTotal = 0;
-            let vendedores = {};
-            let proveedores = {};
-            let refs = new Set();
-            let clientes = new Set();
-
-            // Filtrar siempre fuera el vendedor 12
-            const dataValida = data.filter(row => row.vendedor != 12);
-
-            dataValida.forEach(row => {
-                const monto = parseFloat(row.tventas) || 0;
-                const tipo = parseInt(row.tipo);
-                
-                // Lógica de Venta Neta: Tipo 1 (+) Tipo 2 (-)
-                let valorFinal = 0;
-                if(tipo === 1) valorFinal = monto;
-                else if(tipo === 2) valorFinal = -monto;
-
-                ventaNetaTotal += valorFinal;
-
-                // Agrupación por Vendedor
-                const vend = row.vendedor || 'Sin Nombre';
-                vendedores[vend] = (vendedores[vend] || 0) + valorFinal;
-
-                // Agrupación por Proveedor
-                const prov = row.DESNUMPROVEE || 'Otros';
-                proveedores[prov] = (proveedores[prov] || 0) + valorFinal;
-
-                if(row.referencia) refs.add(row.referencia);
-                if(row.nit) clientes.add(row.nit);
-            });
-
-            // Actualizar Interfaz
-            document.getElementById('total-ventas').innerText = '$' + ventaNetaTotal.toLocaleString(undefined, {minimumFractionDigits: 0});
-            document.getElementById('clientes-impactados').innerText = clientes.size;
-            document.getElementById('refs-impactadas').innerText = refs.size;
+        function poblarFiltros() {
+            const unique = (col) => [...new Set(rawData.map(d => d[col]))].filter(x => x).sort();
+            const sP = document.getElementById('selProv');
+            const sV = document.getElementById('selVend');
+            const sR = document.getElementById('selRefI');
             
-            const numVend = Object.keys(vendedores).length;
-            const promedio = ventaNetaTotal / (numVend || 1);
-            document.getElementById('promedio-vendedor').innerText = '$' + promedio.toLocaleString(undefined, {maximumFractionDigits: 0});
-
-            dibujarGraficos(vendedores, proveedores);
+            unique('DESNUMPROVEE').forEach(p => sP.innerHTML += `<option value="${p}">${p}</option>`);
+            unique('vendedor').filter(v => v != 12).forEach(v => sV.innerHTML += `<option value="${v}">${v}</option>`);
+            unique('referencia_proveedor').forEach(r => sR.innerHTML += `<option value="${r}">${r}</option>`);
         }
 
-        function dibujarGraficos(vendData, provData) {
-            if(chartV) chartV.destroy();
-            if(chartP) chartP.destroy();
+        function procesar() {
+            const fP = document.getElementById('selProv').value;
+            const fV = document.getElementById('selVend').value;
+            const fR = document.getElementById('selRefI').value;
 
-            const ctxV = document.getElementById('chartVendedores').getContext('2d');
-            chartV = new Chart(ctxV, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(vendData),
-                    datasets: [{
-                        label: 'Venta Neta $',
-                        data: Object.values(vendData),
-                        backgroundColor: '#1e3a8a'
-                    }]
-                },
-                options: { responsive: true }
+            const filtrados = rawData.filter(d => 
+                (fP ? d.DESNUMPROVEE == fP : true) &&
+                (fV ? d.vendedor == fV : d.vendedor != 12) &&
+                (fR ? d.referencia_proveedor == fR : true)
+            );
+
+            let resumen = {};
+            filtrados.forEach(row => {
+                const cod = String(row.vendedor).padStart(2, '0');
+                if(cod === "12") return;
+
+                const tipo = parseInt(row.tipo);
+                const valor = parseFloat(row.al) || 0;
+
+                if(!resumen[cod]) resumen[cod] = { t1: 0, t2: 0, clientes: new Set() };
+                if(tipo === 1) resumen[cod].t1 += valor;
+                if(tipo === 2) resumen[cod].t2 += valor;
+                if(row.nit) resumen[cod].clientes.add(row.nit);
             });
 
-            const ctxP = document.getElementById('chartProveedores').getContext('2d');
-            chartP = new Chart(ctxP, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(provData),
-                    datasets: [{
-                        data: Object.values(provData),
-                        backgroundColor: ['#059669', '#d97706', '#dc2626', '#2563eb', '#7c3aed', '#db2777']
-                    }]
-                }
+            const tbody = document.getElementById('tablaBody');
+            tbody.innerHTML = '';
+
+            Object.keys(resumen).forEach(cod => {
+                const infoVend = contactos[cod] || { nombre: "Vendedor " + cod, cel: "" };
+                const neto = resumen[cod].t1 - resumen[cod].t2;
+                const prom = neto / (resumen[cod].clientes.size || 1);
+
+                const textoWA = `*DISTRILECO S.A.S*%0A*INFORME COMERCIAL*%0A--------------------------%0AVendedor: ${infoVend.nombre}%0A(+) Ventas T1: $${resumen[cod].t1.toLocaleString()}%0A(-) Devoluc T2: $${resumen[cod].t2.toLocaleString()}%0A*NETO TOTAL: $${neto.toLocaleString()}*%0A--------------------------%0AImpacto Clientes: ${resumen[cod].clientes.size}%0APromedio/Cliente: $${prom.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 font-medium">
+                        <td class="p-4 text-slate-900 border-l-4 border-blue-900">
+                            <span class="text-[10px] bg-slate-200 px-2 py-0.5 rounded text-slate-600 mr-2">${cod}</span>
+                            ${infoVend.nombre}
+                        </td>
+                        <td class="p-4 text-right text-blue-600">$ ${resumen[cod].t1.toLocaleString()}</td>
+                        <td class="p-4 text-right text-red-500">$ ${resumen[cod].t2.toLocaleString()}</td>
+                        <td class="p-4 text-right font-black bg-blue-50 text-blue-900">$ ${neto.toLocaleString()}</td>
+                        <td class="p-4 text-right font-bold text-purple-700">$ ${prom.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+                        <td class="p-4 text-center">
+                            <a href="https://wa.me/${infoVend.cel}?text=${textoWA}" target="_blank" class="btn-whatsapp">
+                                📲 Enviar
+                            </a>
+                        </td>
+                    </tr>
+                `;
             });
         }
     </script>
