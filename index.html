@@ -18,7 +18,7 @@
         <div class="bg-blue-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4 border-b-4 border-yellow-500">
             <div class="text-center md:text-left">
                 <h1 class="text-3xl font-black tracking-tighter italic">DISTRILECO S.A.S</h1>
-                <p class="text-xs text-blue-300 uppercase font-bold tracking-widest">Resumen basado en Columnas G, M y AL</p>
+                <p class="text-xs text-blue-300 uppercase font-bold tracking-widest text-balance">Resumen por Vendedor y Proveedor (tventas)</p>
             </div>
             <label class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold cursor-pointer shadow-md hover:bg-green-500 transition">
                 📂 CARGAR GESTIONVENTAS.XLSX
@@ -26,18 +26,14 @@
             </label>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border-t-4 border-blue-600">
-                <label class="text-xs font-black text-blue-900 uppercase">1. Proveedor (Editable):</label>
+                <label class="text-xs font-black text-blue-900 uppercase">1. Filtrar Proveedor (DESNUMPROVEE):</label>
                 <select id="selProv" class="w-full mt-1 p-2 bg-blue-50 border rounded-lg font-bold text-blue-800" onchange="procesar()"><option value="">TODOS LOS PROVEEDORES</option></select>
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border-t-4 border-slate-400">
-                <label class="text-xs font-black text-slate-600 uppercase">2. Vendedor (Columna M):</label>
+                <label class="text-xs font-black text-slate-600 uppercase">2. Filtrar Vendedor:</label>
                 <select id="selVend" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg font-bold text-slate-700" onchange="procesar()"><option value="">TODOS (MENOS 12)</option></select>
-            </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border-t-4 border-slate-400">
-                <label class="text-xs font-black text-slate-600 uppercase">3. Referencia (Columna I):</label>
-                <select id="selRefI" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg font-bold text-slate-700" onchange="procesar()"><option value="">TODAS LAS REFS</option></select>
             </div>
         </div>
 
@@ -46,16 +42,16 @@
                 <table class="w-full text-left">
                     <thead class="bg-slate-800 text-white text-[11px] uppercase tracking-wider">
                         <tr>
-                            <th class="p-4">Vendedor (M)</th>
+                            <th class="p-4">Vendedor</th>
                             <th class="p-4 text-right">Venta (T1)</th>
                             <th class="p-4 text-right">Devol. (T2)</th>
-                            <th class="p-4 text-right bg-blue-800">Total Neto (AL)</th>
-                            <th class="p-4 text-right">Venta/Cliente</th>
-                            <th class="p-4 text-center">Acción</th>
+                            <th class="p-4 text-right bg-blue-800">Neto (tventas)</th>
+                            <th class="p-4 text-right">Prom. Cliente</th>
+                            <th class="p-4 text-center">WhatsApp</th>
                         </tr>
                     </thead>
                     <tbody id="tablaBody" class="text-sm divide-y divide-slate-100 font-medium">
-                        <tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic">Cargue el archivo para procesar G, M y AL...</td></tr>
+                        <tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic">Cargue el archivo para iniciar el resumen...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -68,7 +64,6 @@
 
     <script>
         let rawData = [];
-        
         const contactos = {
             "03": { nombre: "ALEXANDER SANCHEZ", cel: "573218037260" },
             "04": { nombre: "JUAN CARLOS QUINTANA", cel: "573204077185" },
@@ -100,18 +95,15 @@
             const getU = (col) => [...new Set(rawData.map(d => d[col]))].filter(x => x).sort();
             document.getElementById('selProv').innerHTML = '<option value="">TODOS LOS PROVEEDORES</option>' + getU('DESNUMPROVEE').map(p => `<option value="${p}">${p}</option>`).join('');
             document.getElementById('selVend').innerHTML = '<option value="">TODOS (MENOS 12)</option>' + getU('vendedor').filter(v => v != 12).map(v => `<option value="${v}">${v}</option>`).join('');
-            document.getElementById('selRefI').innerHTML = '<option value="">TODAS LAS REFS</option>' + getU('referencia_proveedor').map(r => `<option value="${r}">${r}</option>`).join('');
         }
 
         function procesar() {
             const fP = document.getElementById('selProv').value;
             const fV = document.getElementById('selVend').value;
-            const fR = document.getElementById('selRefI').value;
 
             const filtrados = rawData.filter(d => 
                 (fP ? d.DESNUMPROVEE === fP : true) &&
-                (fV ? d.vendedor == fV : d.vendedor != 12) &&
-                (fR ? d.referencia_proveedor == fR : true)
+                (fV ? d.vendedor == fV : d.vendedor != 12)
             );
 
             let resumen = {};
@@ -120,15 +112,11 @@
                 if(cod === "12") return;
 
                 const tipo = parseInt(row.tipo);
-                const valorG = parseFloat(row.tventas) || 0;
-                const valorAL = parseFloat(row.al) || 0;
+                const valor = parseFloat(row.tventas) || 0; // Columna tventas
 
                 if(!resumen[cod]) resumen[cod] = { t1: 0, t2: 0, clientes: new Set() };
-                
-                // G para identificar Venta/Devolución
-                if(tipo === 1) resumen[cod].t1 += valorAL;
-                if(tipo === 2) resumen[cod].t2 += valorAL;
-                
+                if(tipo === 1) resumen[cod].t1 += valor;
+                if(tipo === 2) resumen[cod].t2 += valor;
                 if(row.nit) resumen[cod].clientes.add(row.nit);
             });
 
@@ -140,10 +128,10 @@
                 const neto = resumen[cod].t1 - resumen[cod].t2;
                 const prom = neto / (resumen[cod].clientes.size || 1);
 
-                const msgWA = `*DISTRILECO S.A.S*%0A*INFORME COMERCIAL*%0A--------------------------%0AVendedor: ${infoVend.nombre}%0A(+) Ventas T1: $${resumen[cod].t1.toLocaleString()}%0A(-) Devoluc T2: $${resumen[cod].t2.toLocaleString()}%0A*NETO (Col AL): $${neto.toLocaleString()}*%0A--------------------------%0AImpacto Clientes: ${resumen[cod].clientes.size}%0APromedio/Cliente: $${prom.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+                const msgWA = `*DISTRILECO S.A.S*%0A*REPORTE VENTAS*%0A--------------------------%0AVendedor: ${infoVend.nombre}%0A(+) Ventas T1: $${resumen[cod].t1.toLocaleString()}%0A(-) Devoluc T2: $${resumen[cod].t2.toLocaleString()}%0A*NETO (tventas): $${neto.toLocaleString()}*%0A--------------------------%0AImpacto Clientes: ${resumen[cod].clientes.size}%0APromedio/Cliente: $${prom.toLocaleString(undefined,{maximumFractionDigits:0})}`;
 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 border-l-4 border-transparent hover:border-blue-900 transition-all">
+                    <tr class="hover:bg-slate-50">
                         <td class="p-4 text-slate-900 font-bold underline">(${cod}) ${infoVend.nombre}</td>
                         <td class="p-4 text-right text-blue-600">$ ${resumen[cod].t1.toLocaleString()}</td>
                         <td class="p-4 text-right text-red-500">$ ${resumen[cod].t2.toLocaleString()}</td>
