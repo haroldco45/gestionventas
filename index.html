@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,31 +9,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .vibras-positivas-footer { border-top: 2px solid #e2e8f0; text-align: center; padding: 15px; font-weight: bold; color: #475569; margin-top: 20px; font-size: 13px; }
-        .btn-whatsapp { background-color: #25D366; color: white; padding: 8px 16px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; border-radius: 99px; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .btn-whatsapp { background-color: #25D366; color: white; padding: 6px 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-size: 12px; }
         .btn-whatsapp:hover { background-color: #128C7E; transform: scale(1.05); }
     </style>
 </head>
 <body class="bg-slate-50 p-2 md:p-6">
 
-    <div class="max-w-[1300px] mx-auto space-y-4">
+    <div class="max-w-[1400px] mx-auto space-y-4">
         <div class="bg-blue-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4 border-b-4 border-yellow-500">
             <div class="text-center md:text-left">
                 <h1 class="text-3xl font-black tracking-tighter italic">DISTRILECO S.A.S</h1>
-                <p class="text-xs text-blue-300 uppercase font-bold tracking-widest text-balance">Resumen por Vendedor y Proveedor (tventas)</p>
+                <p class="text-xs text-blue-300 uppercase font-bold tracking-widest">Informe por Vendedor y Proveedor</p>
             </div>
-            <label class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold cursor-pointer shadow-md hover:bg-green-500 transition">
-                📂 CARGAR GESTIONVENTAS.XLSX
+            <label class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold cursor-pointer shadow-md hover:bg-green-500 transition uppercase tracking-wider text-sm">
+                📂 Cargar gestionventas.xlsx
                 <input type="file" id="upload" class="hidden" accept=".xlsx, .csv">
             </label>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border-t-4 border-blue-600">
-                <label class="text-xs font-black text-blue-900 uppercase">1. Filtrar Proveedor (DESNUMPROVEE):</label>
+                <label class="text-xs font-black text-blue-900 uppercase">1. Proveedor (DESNUMPROVEE):</label>
                 <select id="selProv" class="w-full mt-1 p-2 bg-blue-50 border rounded-lg font-bold text-blue-800" onchange="procesar()"><option value="">TODOS LOS PROVEEDORES</option></select>
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border-t-4 border-slate-400">
-                <label class="text-xs font-black text-slate-600 uppercase">2. Filtrar Vendedor:</label>
+                <label class="text-xs font-black text-slate-600 uppercase">2. Vendedor (M):</label>
                 <select id="selVend" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg font-bold text-slate-700" onchange="procesar()"><option value="">TODOS (MENOS 12)</option></select>
             </div>
         </div>
@@ -43,15 +44,16 @@
                     <thead class="bg-slate-800 text-white text-[11px] uppercase tracking-wider">
                         <tr>
                             <th class="p-4">Vendedor</th>
+                            <th class="p-4">Proveedor (DESNUMPROVEE)</th>
                             <th class="p-4 text-right">Venta (T1)</th>
                             <th class="p-4 text-right">Devol. (T2)</th>
                             <th class="p-4 text-right bg-blue-800">Neto (tventas)</th>
-                            <th class="p-4 text-right">Prom. Cliente</th>
+                            <th class="p-4 text-right">Venta/Cliente</th>
                             <th class="p-4 text-center">WhatsApp</th>
                         </tr>
                     </thead>
                     <tbody id="tablaBody" class="text-sm divide-y divide-slate-100 font-medium">
-                        <tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic">Cargue el archivo para iniciar el resumen...</td></tr>
+                        <tr><td colspan="7" class="p-20 text-center text-slate-400 font-bold italic">Cargue el archivo para ver el resumen discriminado...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -110,31 +112,40 @@
             filtrados.forEach(row => {
                 const cod = String(row.vendedor).padStart(2, '0');
                 if(cod === "12") return;
+                
+                const prov = row.DESNUMPROVEE || 'VARIOS';
+                // Llave compuesta para mostrar el desglose por vendedor y proveedor
+                const key = `${cod}|${prov}`;
 
                 const tipo = parseInt(row.tipo);
-                const valor = parseFloat(row.tventas) || 0; // Columna tventas
+                const valor = parseFloat(row.tventas) || 0;
 
-                if(!resumen[cod]) resumen[cod] = { t1: 0, t2: 0, clientes: new Set() };
-                if(tipo === 1) resumen[cod].t1 += valor;
-                if(tipo === 2) resumen[cod].t2 += valor;
-                if(row.nit) resumen[cod].clientes.add(row.nit);
+                if(!resumen[key]) resumen[key] = { cod: cod, prov: prov, t1: 0, t2: 0, clientes: new Set() };
+                if(tipo === 1) resumen[key].t1 += valor;
+                if(tipo === 2) resumen[key].t2 += valor;
+                if(row.nit) resumen[key].clientes.add(row.nit);
             });
 
             const tbody = document.getElementById('tablaBody');
             tbody.innerHTML = '';
 
-            Object.keys(resumen).forEach(cod => {
-                const infoVend = contactos[cod] || { nombre: "Vendedor " + cod, cel: "" };
-                const neto = resumen[cod].t1 - resumen[cod].t2;
-                const prom = neto / (resumen[cod].clientes.size || 1);
+            // Ordenar por vendedor
+            const llavesOrdenadas = Object.keys(resumen).sort();
 
-                const msgWA = `*DISTRILECO S.A.S*%0A*REPORTE VENTAS*%0A--------------------------%0AVendedor: ${infoVend.nombre}%0A(+) Ventas T1: $${resumen[cod].t1.toLocaleString()}%0A(-) Devoluc T2: $${resumen[cod].t2.toLocaleString()}%0A*NETO (tventas): $${neto.toLocaleString()}*%0A--------------------------%0AImpacto Clientes: ${resumen[cod].clientes.size}%0APromedio/Cliente: $${prom.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+            llavesOrdenadas.forEach(key => {
+                const data = resumen[key];
+                const infoVend = contactos[data.cod] || { nombre: "Vendedor " + data.cod, cel: "" };
+                const neto = data.t1 - data.t2;
+                const prom = neto / (data.clientes.size || 1);
+
+                const msgWA = `*DISTRILECO S.A.S*%0A*REPORTE POR PROVEEDOR*%0A--------------------------%0AVendedor: ${infoVend.nombre}%0AProveedor: ${data.prov}%0A--------------------------%0A(+) Ventas T1: $${data.t1.toLocaleString()}%0A(-) Devoluc T2: $${data.t2.toLocaleString()}%0A*NETO: $${neto.toLocaleString()}*%0A--------------------------%0APromedio/Cliente: $${prom.toLocaleString(undefined,{maximumFractionDigits:0})}`;
 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-4 text-slate-900 font-bold underline">(${cod}) ${infoVend.nombre}</td>
-                        <td class="p-4 text-right text-blue-600">$ ${resumen[cod].t1.toLocaleString()}</td>
-                        <td class="p-4 text-right text-red-500">$ ${resumen[cod].t2.toLocaleString()}</td>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4 text-slate-900 font-bold">(${data.cod}) ${infoVend.nombre}</td>
+                        <td class="p-4 text-slate-600 font-semibold">${data.prov}</td>
+                        <td class="p-4 text-right text-blue-600">$ ${data.t1.toLocaleString()}</td>
+                        <td class="p-4 text-right text-red-500">$ ${data.t2.toLocaleString()}</td>
                         <td class="p-4 text-right font-black bg-blue-50 text-blue-900">$ ${neto.toLocaleString()}</td>
                         <td class="p-4 text-right font-bold text-purple-700">$ ${prom.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
                         <td class="p-4 text-center">
@@ -142,6 +153,10 @@
                         </td>
                     </tr>`;
             });
+            
+            if (llavesOrdenadas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-10 text-center text-slate-400">Sin datos para la selección actual.</td></tr>';
+            }
         }
     </script>
 </body>
