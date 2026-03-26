@@ -111,12 +111,11 @@
                 (fV ? d.vendedor == fV : d.vendedor != 12)
             );
 
-            // KPI Global de Clientes Impactados
             const clientesGlobales = new Set(filtrados.map(d => d.nit).filter(n => n));
             document.getElementById('totalClientesVal').innerText = clientesGlobales.size;
             document.getElementById('totalClientesCard').classList.remove('hidden');
 
-            let resumenVend = {}; // Agrupado por vendedor
+            let resumenVend = {}; 
             
             filtrados.forEach(row => {
                 const cod = String(row.vendedor).padStart(2, '0');
@@ -158,7 +157,6 @@
                 const netoTotal = vData.t1 - vData.t2;
                 const prom = netoTotal / (vData.clientes.size || 1);
 
-                // Construcción de la lista de proveedores para la tabla y WhatsApp
                 let detalleHtml = "";
                 let detalleTextoWA = "";
 
@@ -171,7 +169,8 @@
                     detalleTextoWA += `%0A- ${pName}: $${pNeto.toLocaleString()}`;
                 });
 
-                const msgWA = `*DISTRILECO S.A.S*%0A*REPORTE CONSOLIDADO*%0A--------------------------%0AVendedor: ${info.nombre}%0A--------------------------%0ADETALLE POR PROVEEDOR:${detalleTextoWA}%0A--------------------------%0A(+) Ventas T1: $${vData.t1.toLocaleString()}%0A(-) Devoluc T2: $${vData.t2.toLocaleString()}%0A*TOTAL NETO: $${netoTotal.toLocaleString()}*%0A--------------------------%0AImpacto Clientes: ${vData.clientes.size}%0APromedio/Cliente: $${prom.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+                // Inclusión de firma en el mensaje de WhatsApp
+                const msgWA = `*DISTRILECO S.A.S*%0A*REPORTE CONSOLIDADO*%0A--------------------------%0AVendedor: ${info.nombre}%0A--------------------------%0ADETALLE POR PROVEEDOR:${detalleTextoWA}%0A--------------------------%0A(+) Ventas T1: $${vData.t1.toLocaleString()}%0A(-) Devoluc T2: $${vData.t2.toLocaleString()}%0A*TOTAL NETO: $${netoTotal.toLocaleString()}*%0A--------------------------%0AImpacto Clientes: ${vData.clientes.size}%0APromedio/Cliente: $${prom.toLocaleString(undefined,{maximumFractionDigits:0})}%0A--------------------------%0A*app desarrollada por vibras positivas derechos de autor*`;
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-all">
